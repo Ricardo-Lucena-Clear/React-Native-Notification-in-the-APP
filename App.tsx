@@ -4,7 +4,9 @@ import { View, Text, StyleSheet, Button } from 'react-native'
 import notifee, {
   AuthorizationStatus,
   EventType,
-  AndroidImportance
+  AndroidImportance,
+  TriggerType,
+  TimestampTrigger
 } from '@notifee/react-native'
 
 export default function App(){
@@ -27,6 +29,22 @@ export default function App(){
     getPermission();
 
   }, [])
+
+
+  notifee.onBackgroundEvent(async ({ type, detail }) => {
+    const { notification, pressAction } = detail;
+
+    if(type === EventType.PRESS){
+      console.log("TOCOU NA NOTIFICACAO BACKGROUND: ", pressAction?.id)
+      if(notification?.id){
+        await notifee.cancelNotification(notification?.id)
+      }
+
+    }
+
+    console.log("EVENT BACKGROUND")
+
+  } )
 
 
   useEffect(() => {
@@ -69,12 +87,41 @@ export default function App(){
 
   }
 
+
+  async function handleScheduleNotification(){
+    const date = new Date(Date.now());
+
+    date.setMinutes(date.getMinutes() + 1);
+
+    const trigger: TimestampTrigger = {
+      type: TriggerType.TIMESTAMP,
+      timestamp: date.getTime()
+    }
+
+    await notifee.createTriggerNotification({
+      title: "Lembrete Estudo",
+      body: "Estudar JavaScript as 15:30",
+      android:{
+        channelId: 'lembrete',
+        importance: AndroidImportance.HIGH,
+        pressAction: {
+          id: 'default',
+        }
+      }
+    }, trigger)
+  }
+
   return(
     <View style={styles.container}>
       <Text>Notificaçoes App</Text>
       <Button
         title="Enviar notificaçao"
         onPress={handleNotificate}
+      />
+
+      <Button
+        title="Agendar notificaçao"
+        onPress={handleScheduleNotification}
       />
     </View>
   )
